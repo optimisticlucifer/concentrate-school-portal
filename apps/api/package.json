@@ -1,0 +1,17 @@
+{
+  "name": "@concentrate/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node --env-file=../../.env dist/index.js",
+    "dev": "tsc -w -p tsconfig.json & node --env-file=../../.env --watch dist/index.js",
+    "db:migrate": "node --env-file=../../.env dist/db/migrate.js",
+    "db:seed": "node --env-file=../../.env dist/db/seed.js"
+  },
+  "dependencies": {
+    "@concentrate/shared": "*"
+  }
+}
