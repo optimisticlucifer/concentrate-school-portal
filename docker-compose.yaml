@@ -62,6 +62,8 @@ services:
     restart: unless-stopped
     depends_on:
       - api
+    expose:
+      - '3000'
     environment:
       SERVICE_FQDN_WEB_3000: ''
       API_ORIGIN: http://api:4000
