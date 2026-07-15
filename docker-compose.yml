@@ -1,14 +1,15 @@
+# Full-stack deployment: web + api + postgres + redis, all from the root Dockerfile.
+# No host ports are published here (Coolify/its proxy exposes the web service via
+# SERVICE_FQDN). For local development, docker-compose.override.yml adds host ports.
+
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: concentrate-quiz-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: concentrate-quiz
-    ports:
-      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -19,10 +20,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: concentrate-quiz-redis
     restart: unless-stopped
-    ports:
-      - '6379:6379'
     volumes:
       - redis_data:/data
     healthcheck:
@@ -36,7 +34,6 @@ services:
       context: .
       dockerfile: Dockerfile
       target: api
-    container_name: concentrate-quiz-api
     restart: unless-stopped
     depends_on:
       postgres:
@@ -44,17 +41,16 @@ services:
       redis:
         condition: service_healthy
     environment:
+      NODE_ENV: production
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/concentrate-quiz
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      APP_URL: ${APP_URL:-http://localhost:3000}
+      JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      APP_URL: ${APP_URL}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_MODEL: claude-haiku-4-5
       API_PORT: '4000'
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-haiku-4-5}
-    ports:
-      - '4000:4000'
 
   web:
     build:
@@ -63,14 +59,12 @@ services:
       target: web
       args:
         API_ORIGIN: http://api:4000
-    container_name: concentrate-quiz-web
     restart: unless-stopped
     depends_on:
       - api
     environment:
-      API_ORIGIN: http://api:4000
-    ports:
-      - '3000:3000'
+      - SERVICE_FQDN_WEB_3000
+      - API_ORIGIN=http://api:4000
 
 volumes:
   postgres_data:
