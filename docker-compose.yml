@@ -61,6 +61,8 @@ services:
       context: .
       dockerfile: Dockerfile
       target: web
+      args:
+        API_ORIGIN: http://api:4000
     container_name: concentrate-quiz-web
     restart: unless-stopped
     depends_on:

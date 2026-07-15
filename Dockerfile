@@ -14,6 +14,10 @@ RUN npm ci
 
 # --- build all workspaces ---
 FROM deps AS build
+# Next.js bakes rewrite destinations at build time, so the API origin the web
+# app proxies /api/* to must be known here (defaults to the compose service).
+ARG API_ORIGIN=http://api:4000
+ENV API_ORIGIN=$API_ORIGIN
 COPY . .
 RUN npm run build
 
