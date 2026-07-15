@@ -85,7 +85,7 @@ export function ChatWidget(): React.ReactElement {
           placeholder="Type a message…"
           aria-label="Message"
         />
-        <Button type="submit" size="icon" disabled={busy}>
+        <Button type="submit" size="icon" disabled={busy} aria-label="Send message">
           <Send className="h-4 w-4" aria-hidden />
         </Button>
       </form>

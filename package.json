@@ -17,7 +17,7 @@
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "lint": "eslint .",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts,.tsx",
     "format": "prettier --write ."
   },
   "devDependencies": {

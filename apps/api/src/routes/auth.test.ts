@@ -100,4 +100,23 @@ describe('auth routes', () => {
     const res = await request(app.server).post('/api/auth/refresh');
     expect(res.status).toBe(401);
   });
+
+  it('rejects a malformed access token', async () => {
+    const res = await request(app.server)
+      .get('/api/auth/me')
+      .set('Cookie', 'access_token=not-a-real-jwt');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 400 for Google login when OAuth is not configured', async () => {
+    const res = await request(app.server).get('/api/auth/google');
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects a Google callback with a mismatched state', async () => {
+    const res = await request(app.server).get(
+      '/api/auth/google/callback?code=abc&state=nope'
+    );
+    expect(res.status).toBe(400);
+  });
 });

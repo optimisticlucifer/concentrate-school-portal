@@ -1,0 +1,9 @@
+node_modules
+dist
+.next
+coverage
+playwright-report
+test-results
+*.config.ts
+*.config.mjs
+next-env.d.ts

@@ -19,11 +19,10 @@ export async function seed(db: Kysely<Database>): Promise<void> {
   await db.deleteFrom('users').execute();
 
   const pw = await hashPassword('password123');
-  const admin = await db
+  await db
     .insertInto('users')
     .values({ email: 'admin@concentrate.test', name: 'Admin User', role: 'admin', password_hash: pw })
-    .returning('id')
-    .executeTakeFirstOrThrow();
+    .execute();
 
   const teacher = await db
     .insertInto('users')

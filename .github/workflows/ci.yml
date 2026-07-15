@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: concentrate-quiz
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+      - run: npm run coverage
+      - name: E2E (Playwright)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run db:seed
+          npm run test:e2e
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/concentrate-quiz
+          REDIS_URL: redis://localhost:6379
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build --target api -t concentrate-school-portal-api .
+      - name: Build web image
+        run: docker build --target web -t concentrate-school-portal-web .
+      - name: Push to Docker Hub
+        if: ${{ env.DOCKERHUB_USERNAME != '' }}
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          docker tag concentrate-school-portal-api "$DOCKERHUB_USERNAME/concentrate-school-portal-api:latest"
+          docker tag concentrate-school-portal-web "$DOCKERHUB_USERNAME/concentrate-school-portal-web:latest"
+          docker push "$DOCKERHUB_USERNAME/concentrate-school-portal-api:latest"
+          docker push "$DOCKERHUB_USERNAME/concentrate-school-portal-web:latest"
