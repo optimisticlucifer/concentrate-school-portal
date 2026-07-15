@@ -1,12 +1,15 @@
 import type { FastifyReply } from 'fastify';
+import { config } from '../config.js';
 import { ACCESS_TTL_SECONDS, REFRESH_TTL_SECONDS } from './tokens.js';
 
 export const ACCESS_COOKIE = 'access_token';
 export const REFRESH_COOKIE = 'refresh_token';
 
+// Secure cookies require HTTPS; drive the flag off the public URL scheme so it is
+// correct whether the deployment terminates TLS or not.
 const base = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
+  secure: config.appUrl.startsWith('https'),
   sameSite: 'lax',
   path: '/',
 } as const;
