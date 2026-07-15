@@ -12,3 +12,8 @@ test-results/
 .DS_Store
 .vercel
 docs/VIDEO-SCRIPT.md
+CLAUDE.md
+WORKING-PLAN.md
+HANDOFF.md
+tasks/
+.claude/
