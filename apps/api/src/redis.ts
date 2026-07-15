@@ -2,7 +2,7 @@ import { Redis } from 'ioredis';
 import { config } from './config.js';
 
 export function createRedis(url = config.redisUrl): Redis {
-  return new Redis(url, { lazyConnect: false, maxRetriesPerRequest: 2 });
+  return new Redis(url, { lazyConnect: true, maxRetriesPerRequest: 2 });
 }
 
 export const redis = createRedis();
