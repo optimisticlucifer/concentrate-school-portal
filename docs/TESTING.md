@@ -49,3 +49,7 @@ needed and are all compile- or test-time only — none ship in the app runtime:
   (no `@types/jsonwebtoken` package added).
 - **`jsdom`** — the DOM environment required to run the brief's own listed
   `@testing-library/react`; Vitest does not bundle one.
+
+One version correction: the brief's `package.json` pinned `@fastify/cookie@^12.0.0`,
+which does not exist on npm — the Fastify 5 line is `@fastify/cookie@^11.x`. Pinned
+to `^11.1.1` so the provided Fastify 5 stack installs. No other versions were changed.

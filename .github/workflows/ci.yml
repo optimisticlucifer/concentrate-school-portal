@@ -54,20 +54,35 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
+    permissions:
+      contents: read
+      packages: write
+    # Job-level env so the step-level `if` can actually see it.
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     steps:
       - uses: actions/checkout@v4
-      - name: Build API image
-        run: docker build --target api -t concentrate-school-portal-api .
-      - name: Build web image
-        run: docker build --target web -t concentrate-school-portal-web .
-      - name: Push to Docker Hub
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Build & push API image (GHCR)
+        run: |
+          IMG=ghcr.io/${{ github.repository }}-api
+          docker build --target api -t "$IMG:latest" -t "$IMG:${{ github.sha }}" .
+          docker push "$IMG:latest"
+          docker push "$IMG:${{ github.sha }}"
+      - name: Build & push web image (GHCR)
+        run: |
+          IMG=ghcr.io/${{ github.repository }}-web
+          docker build --target web -t "$IMG:latest" -t "$IMG:${{ github.sha }}" .
+          docker push "$IMG:latest"
+          docker push "$IMG:${{ github.sha }}"
+      - name: Mirror to Docker Hub (only if configured)
         if: ${{ env.DOCKERHUB_USERNAME != '' }}
         env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-          docker tag concentrate-school-portal-api "$DOCKERHUB_USERNAME/concentrate-school-portal-api:latest"
-          docker tag concentrate-school-portal-web "$DOCKERHUB_USERNAME/concentrate-school-portal-web:latest"
-          docker push "$DOCKERHUB_USERNAME/concentrate-school-portal-api:latest"
-          docker push "$DOCKERHUB_USERNAME/concentrate-school-portal-web:latest"
+          for svc in api web; do
+            docker tag "ghcr.io/${{ github.repository }}-$svc:latest" "$DOCKERHUB_USERNAME/concentrate-school-portal-$svc:latest"
+            docker push "$DOCKERHUB_USERNAME/concentrate-school-portal-$svc:latest"
+          done

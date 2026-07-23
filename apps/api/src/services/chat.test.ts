@@ -122,10 +122,20 @@ describe('buildContext', () => {
   });
 });
 
-describe('chat (default: unconfigured)', () => {
+describe('chat (unconfigured)', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
   it('returns the not-configured reply when ANTHROPIC_API_KEY is empty', async () => {
+    // Force empty regardless of the host machine's env, then re-import so
+    // config re-reads it. Otherwise this test leaks the real env var.
+    vi.stubEnv('ANTHROPIC_API_KEY', '');
+    vi.resetModules();
+    const { chat: freshChat } = await import('./chat.js');
     const student = await seedUser(db, { role: 'student' });
-    const res = await chat(db, student.id, 'student', 'hello');
+    const res = await freshChat(db, student.id, 'student', 'hello');
     expect(res.reply).toBe(
       'The assistant is not configured on this deployment.'
     );
