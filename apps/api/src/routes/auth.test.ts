@@ -119,4 +119,14 @@ describe('auth routes', () => {
     );
     expect(res.status).toBe(400);
   });
+
+  it('does not 500 on a bodyless application/json request', async () => {
+    // A DELETE that sends content-type: application/json with no body must not
+    // crash body parsing; it should reach auth (401), not error 500.
+    const res = await request(app.server)
+      .delete('/api/teacher/classes/00000000-0000-0000-0000-000000000000')
+      .set('content-type', 'application/json');
+    expect(res.status).not.toBe(500);
+    expect(res.status).toBe(401);
+  });
 });

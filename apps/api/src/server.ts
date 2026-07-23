@@ -31,6 +31,25 @@ export async function buildServer(
   app.decorate('db', opts.db ?? defaultDb);
   app.decorate('redis', opts.redis ?? defaultRedis);
 
+  // Tolerate an empty body on application/json requests (e.g. a bodyless
+  // DELETE that still sends the header) instead of 500-ing on parse.
+  app.addContentTypeParser(
+    'application/json',
+    { parseAs: 'string' },
+    (_req, body, done) => {
+      if (body === '' || body === undefined) {
+        done(null, undefined);
+        return;
+      }
+      try {
+        done(null, JSON.parse(body as string));
+      } catch {
+        const err = new AppError(400, 'invalid JSON body');
+        done(err, undefined);
+      }
+    }
+  );
+
   await app.register(cookie);
   await app.register(cors, { origin: true, credentials: true });
 

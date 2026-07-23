@@ -57,6 +57,20 @@ describe('api request wrapper', () => {
     expect(fetchMock.mock.calls[0][1].method).toBe('DELETE');
   });
 
+  it('omits content-type on bodyless requests (avoids empty-JSON parse errors)', async () => {
+    fetchMock.mockResolvedValueOnce(res(200, {}));
+    await api.del('/students/1');
+    const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
+    expect(headers['content-type']).toBeUndefined();
+  });
+
+  it('sets content-type when a body is present', async () => {
+    fetchMock.mockResolvedValueOnce(res(200, {}));
+    await api.post('/students', { name: 'Ada' });
+    const headers = fetchMock.mock.calls[0][1].headers as Record<string, string>;
+    expect(headers['content-type']).toBe('application/json');
+  });
+
   it('204 returns undefined', async () => {
     fetchMock.mockResolvedValueOnce(res(204));
     await expect(api.get('/ping')).resolves.toBeUndefined();
