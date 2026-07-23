@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import type { UserDTO } from '@concentrate/shared';
 import { api } from '@/lib/api';
 import { Sidebar } from '@/components/sidebar';
@@ -12,14 +12,23 @@ export default function AppLayout({
   children: React.ReactNode;
 }): React.ReactElement | null {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<UserDTO | null>(null);
 
   useEffect(() => {
     api
       .get<UserDTO>('/auth/me')
-      .then(setUser)
+      .then((u) => {
+        // Role-gate the section: a student cannot sit on /admin or /teacher.
+        const section = pathname.split('/')[1];
+        if (section && section !== u.role) {
+          router.replace(`/${u.role}`);
+          return;
+        }
+        setUser(u);
+      })
       .catch(() => router.push('/login'));
-  }, [router]);
+  }, [router, pathname]);
 
   if (!user)
     return (

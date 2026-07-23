@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GraduationCap } from 'lucide-react';
 import type { UserDTO } from '@concentrate/shared';
@@ -13,6 +13,14 @@ export default function LoginPage(): React.ReactElement {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // Already signed in? Skip the form and go to the dashboard.
+  useEffect(() => {
+    api
+      .get<UserDTO>('/auth/me')
+      .then((u) => router.replace(`/${u.role}`))
+      .catch(() => {});
+  }, [router]);
 
   async function submit(e: React.FormEvent): Promise<void> {
     e.preventDefault();
