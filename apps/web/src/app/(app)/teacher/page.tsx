@@ -1,16 +1,18 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Users } from 'lucide-react';
+import { ChevronRight, Trash2, Users } from 'lucide-react';
 import { api } from '@/lib/api';
 import type { TeacherClass, TeacherDashboard } from '@/lib/types';
 import { ThoughtOfDay } from '@/components/thought-of-day';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toaster';
 
 export default function TeacherPage(): React.ReactElement {
   const [data, setData] = useState<TeacherDashboard | null>(null);
   const [name, setName] = useState('');
+  const toast = useToast();
 
   const load = useCallback(() => {
     api.get<TeacherDashboard>('/teacher/dashboard').then(setData);
@@ -20,9 +22,27 @@ export default function TeacherPage(): React.ReactElement {
   async function createClass(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     if (!name.trim()) return;
-    await api.post<TeacherClass>('/teacher/classes', { name });
-    setName('');
-    load();
+    try {
+      await api.post<TeacherClass>('/teacher/classes', { name });
+      toast(`Created ${name}`);
+      setName('');
+      load();
+    } catch {
+      toast('Could not create class', 'error');
+    }
+  }
+
+  async function deleteClass(c: TeacherClass): Promise<void> {
+    if (!data) return;
+    const snapshot = data;
+    setData({ ...data, classes: data.classes.filter((x) => x.id !== c.id) });
+    try {
+      await api.del(`/teacher/classes/${c.id}`);
+      toast(`Deleted ${c.name}`);
+    } catch {
+      setData(snapshot);
+      toast('Delete failed', 'error');
+    }
   }
 
   if (!data) return <p className="text-sm text-ink-muted">Loading…</p>;
@@ -62,20 +82,33 @@ export default function TeacherPage(): React.ReactElement {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {data.classes.map((c) => (
-            <Link
+            <div
               key={c.id}
-              href={`/teacher/classes/${c.id}`}
               className="card flex items-center justify-between px-5 py-4 transition-colors hover:bg-primary-subtle"
             >
-              <div>
-                <p className="font-medium text-ink">{c.name}</p>
-                <p className="mt-1 flex items-center gap-1 text-sm text-ink-muted">
-                  <Users className="h-3.5 w-3.5" aria-hidden />
-                  {c.studentCount} students
-                </p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-ink-muted" aria-hidden />
-            </Link>
+              <Link
+                href={`/teacher/classes/${c.id}`}
+                className="flex flex-1 items-center justify-between"
+              >
+                <div>
+                  <p className="font-medium text-ink">{c.name}</p>
+                  <p className="mt-1 flex items-center gap-1 text-sm text-ink-muted">
+                    <Users className="h-3.5 w-3.5" aria-hidden />
+                    {c.studentCount} students
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-ink-muted" aria-hidden />
+              </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Delete ${c.name}`}
+                onClick={() => deleteClass(c)}
+                className="ml-2"
+              >
+                <Trash2 className="h-4 w-4 text-danger" aria-hidden />
+              </Button>
+            </div>
           ))}
         </div>
       )}

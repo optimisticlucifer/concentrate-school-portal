@@ -5,6 +5,7 @@ import type { UserDTO } from '@concentrate/shared';
 import { api } from '@/lib/api';
 import { Sidebar } from '@/components/sidebar';
 import { ChatWidget } from '@/components/chat-widget';
+import { ToastProvider } from '@/components/ui/toaster';
 
 export default function AppLayout({
   children,
@@ -38,10 +39,12 @@ export default function AppLayout({
     );
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar user={user} />
-      <main className="flex-1 overflow-y-auto px-8 py-8">{children}</main>
-      <ChatWidget />
-    </div>
+    <ToastProvider>
+      <div className="flex min-h-screen">
+        <Sidebar user={user} />
+        <main className="flex-1 overflow-y-auto px-8 py-8">{children}</main>
+        <ChatWidget />
+      </div>
+    </ToastProvider>
   );
 }

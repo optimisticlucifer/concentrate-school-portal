@@ -24,11 +24,16 @@ export async function seed(db: Kysely<Database>): Promise<void> {
     .values({ email: 'admin@concentrate.test', name: 'Admin User', role: 'admin', password_hash: pw })
     .execute();
 
-  const teacher = await db
+  const teachers = await db
     .insertInto('users')
-    .values({ email: 'teacher@concentrate.test', name: 'Grace Hopper', role: 'teacher', password_hash: pw })
+    .values([
+      { email: 'teacher@concentrate.test', name: 'Grace Hopper', role: 'teacher' as const, password_hash: pw },
+      { email: 'alan@concentrate.test', name: 'Alan Turing', role: 'teacher' as const, password_hash: pw },
+      { email: 'ada@concentrate.test', name: 'Ada Lovelace', role: 'teacher' as const, password_hash: pw },
+    ])
     .returning('id')
-    .executeTakeFirstOrThrow();
+    .execute();
+  const teacher = teachers[0]!; // Grace owns the demo classes
 
   const students = await db
     .insertInto('users')
@@ -96,7 +101,7 @@ export async function seed(db: Kysely<Database>): Promise<void> {
   }
 
   console.log(
-    `seeded: 1 admin, 1 teacher, ${students.length} students, ${classNames.length} classes`
+    `seeded: 1 admin, ${teachers.length} teachers, ${students.length} students, ${classNames.length} classes`
   );
   console.log('login: admin@ / teacher@ / student1@concentrate.test — password123');
 }

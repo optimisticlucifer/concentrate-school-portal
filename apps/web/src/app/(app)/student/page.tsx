@@ -6,6 +6,7 @@ import { StatusPill } from '@/components/status-pill';
 import { ThoughtOfDay } from '@/components/thought-of-day';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toaster';
 
 function formatDue(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -25,13 +26,17 @@ function AssignmentRow({
   const [content, setContent] = useState(a.content ?? '');
   const [busy, setBusy] = useState(false);
   const canSubmit = a.state !== 'graded';
+  const toast = useToast();
 
   async function submit(): Promise<void> {
     setBusy(true);
     try {
       await api.post(`/student/assignments/${a.id}/submit`, { content });
+      toast(`Submitted ${a.title}`);
       setOpen(false);
       onSubmitted();
+    } catch {
+      toast('Submission failed', 'error');
     } finally {
       setBusy(false);
     }

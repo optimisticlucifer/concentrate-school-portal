@@ -7,11 +7,13 @@ import { api } from '@/lib/api';
 import type { Assignment, Person, Submission } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input, Textarea } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toaster';
 
 function StudentsTab({ classId }: { classId: string }): React.ReactElement {
   const [enrolled, setEnrolled] = useState<Person[]>([]);
   const [all, setAll] = useState<Person[]>([]);
   const [pick, setPick] = useState('');
+  const toast = useToast();
 
   const load = useCallback(() => {
     api.get<Person[]>(`/teacher/classes/${classId}/students`).then(setEnrolled);
@@ -21,13 +23,26 @@ function StudentsTab({ classId }: { classId: string }): React.ReactElement {
 
   async function add(): Promise<void> {
     if (!pick) return;
-    await api.post(`/teacher/classes/${classId}/students`, { studentId: pick });
-    setPick('');
-    load();
+    const student = all.find((s) => s.id === pick);
+    try {
+      await api.post(`/teacher/classes/${classId}/students`, { studentId: pick });
+      toast(`Added ${student?.name ?? 'student'}`);
+      setPick('');
+      load();
+    } catch {
+      toast('Could not add student', 'error');
+    }
   }
-  async function remove(id: string): Promise<void> {
-    await api.del(`/teacher/classes/${classId}/students/${id}`);
-    load();
+  async function remove(student: Person): Promise<void> {
+    const snapshot = enrolled;
+    setEnrolled((prev) => prev.filter((s) => s.id !== student.id));
+    try {
+      await api.del(`/teacher/classes/${classId}/students/${student.id}`);
+      toast(`Removed ${student.name}`);
+    } catch {
+      setEnrolled(snapshot);
+      toast('Remove failed', 'error');
+    }
   }
 
   const enrolledIds = new Set(enrolled.map((s) => s.id));
@@ -68,7 +83,7 @@ function StudentsTab({ classId }: { classId: string }): React.ReactElement {
                 variant="ghost"
                 size="icon"
                 aria-label={`Remove ${s.name}`}
-                onClick={() => remove(s.id)}
+                onClick={() => remove(s)}
               >
                 <Trash2 className="h-4 w-4 text-danger" aria-hidden />
               </Button>
@@ -121,6 +136,7 @@ function GradeRow({
   const [feedback, setFeedback] = useState(sub.feedback ?? '');
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const toast = useToast();
 
   async function grade(): Promise<void> {
     setBusy(true);
@@ -130,7 +146,10 @@ function GradeRow({
         feedback,
       });
       setSaved(true);
+      toast(`Graded ${sub.studentName}`);
       onGraded();
+    } catch {
+      toast('Could not save grade', 'error');
     } finally {
       setBusy(false);
     }
@@ -181,6 +200,7 @@ function AssignmentsTab({ classId }: { classId: string }): React.ReactElement {
   const [description, setDescription] = useState('');
   const [due, setDue] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
+  const toast = useToast();
 
   const load = useCallback(() => {
     api
@@ -192,15 +212,32 @@ function AssignmentsTab({ classId }: { classId: string }): React.ReactElement {
   async function create(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     if (!title.trim() || !due) return;
-    await api.post(`/teacher/classes/${classId}/assignments`, {
-      title,
-      description,
-      dueAt: new Date(due).toISOString(),
-    });
-    setTitle('');
-    setDescription('');
-    setDue('');
-    load();
+    try {
+      await api.post(`/teacher/classes/${classId}/assignments`, {
+        title,
+        description,
+        dueAt: new Date(due).toISOString(),
+      });
+      toast(`Published ${title}`);
+      setTitle('');
+      setDescription('');
+      setDue('');
+      load();
+    } catch {
+      toast('Could not publish assignment', 'error');
+    }
+  }
+
+  async function remove(a: Assignment): Promise<void> {
+    const snapshot = items;
+    setItems((prev) => prev.filter((x) => x.id !== a.id));
+    try {
+      await api.del(`/teacher/classes/${classId}/assignments/${a.id}`);
+      toast(`Deleted ${a.title}`);
+    } catch {
+      setItems(snapshot);
+      toast('Delete failed', 'error');
+    }
   }
 
   return (
@@ -235,20 +272,30 @@ function AssignmentsTab({ classId }: { classId: string }): React.ReactElement {
 
       {items.map((a) => (
         <div key={a.id} className="card px-4 py-3">
-          <button
-            className="flex w-full items-center justify-between text-left"
-            onClick={() => setOpenId(openId === a.id ? null : a.id)}
-          >
-            <div>
-              <p className="font-medium text-ink">{a.title}</p>
-              <p className="text-xs text-ink-muted">
-                due {new Date(a.dueAt).toLocaleString()}
-              </p>
-            </div>
-            <span className="text-sm text-primary">
-              {openId === a.id ? 'Hide' : 'Grade'}
-            </span>
-          </button>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              className="flex flex-1 items-center justify-between text-left"
+              onClick={() => setOpenId(openId === a.id ? null : a.id)}
+            >
+              <div>
+                <p className="font-medium text-ink">{a.title}</p>
+                <p className="text-xs text-ink-muted">
+                  due {new Date(a.dueAt).toLocaleString()}
+                </p>
+              </div>
+              <span className="text-sm text-primary">
+                {openId === a.id ? 'Hide' : 'Grade'}
+              </span>
+            </button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Delete ${a.title}`}
+              onClick={() => remove(a)}
+            >
+              <Trash2 className="h-4 w-4 text-danger" aria-hidden />
+            </Button>
+          </div>
           {openId === a.id && <GradePanel classId={classId} assignment={a} />}
         </div>
       ))}

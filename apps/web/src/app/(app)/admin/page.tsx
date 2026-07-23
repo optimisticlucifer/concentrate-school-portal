@@ -3,9 +3,10 @@ import { useCallback, useEffect, useState } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
 import { Trash2 } from 'lucide-react';
 import type { Role, UserDTO } from '@concentrate/shared';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toaster';
 
 interface Group {
   id: string;
@@ -22,6 +23,8 @@ function UsersTab(): React.ReactElement {
     password: '',
   });
 
+  const toast = useToast();
+
   const load = useCallback(() => {
     api.get<UserDTO[]>('/admin/users').then(setUsers);
   }, []);
@@ -29,19 +32,41 @@ function UsersTab(): React.ReactElement {
 
   async function create(e: React.FormEvent): Promise<void> {
     e.preventDefault();
-    await api.post('/admin/users', form);
-    setForm({ email: '', name: '', role: 'student', password: '' });
-    load();
+    try {
+      await api.post('/admin/users', form);
+      toast(`Added ${form.name}`);
+      setForm({ email: '', name: '', role: 'student', password: '' });
+      load();
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : 'Could not add user', 'error');
+    }
   }
   async function toggleSuspend(u: UserDTO): Promise<void> {
-    await api.patch(`/admin/users/${u.id}/suspension`, {
-      suspended: !u.suspended,
-    });
-    load();
+    const next = !u.suspended;
+    setUsers((prev) =>
+      prev.map((x) => (x.id === u.id ? { ...x, suspended: next } : x))
+    );
+    try {
+      await api.patch(`/admin/users/${u.id}/suspension`, { suspended: next });
+      toast(next ? `Suspended ${u.name}` : `Reinstated ${u.name}`);
+    } catch {
+      setUsers((prev) =>
+        prev.map((x) => (x.id === u.id ? { ...x, suspended: u.suspended } : x))
+      );
+      toast('Action failed', 'error');
+    }
   }
   async function remove(id: string): Promise<void> {
-    await api.del(`/admin/users/${id}`);
-    load();
+    const snapshot = users;
+    const gone = users.find((u) => u.id === id);
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+    try {
+      await api.del(`/admin/users/${id}`);
+      toast(`Removed ${gone?.name ?? 'user'}`);
+    } catch {
+      setUsers(snapshot);
+      toast('Delete failed', 'error');
+    }
   }
 
   return (
@@ -141,6 +166,7 @@ function GroupsTab(): React.ReactElement {
   const [teachers, setTeachers] = useState<UserDTO[]>([]);
   const [name, setName] = useState('');
   const [picked, setPicked] = useState<string[]>([]);
+  const toast = useToast();
 
   const load = useCallback(() => {
     api.get<Group[]>('/admin/groups').then(setGroups);
@@ -153,14 +179,27 @@ function GroupsTab(): React.ReactElement {
   async function create(e: React.FormEvent): Promise<void> {
     e.preventDefault();
     if (!name.trim()) return;
-    await api.post('/admin/groups', { name, teacherIds: picked });
-    setName('');
-    setPicked([]);
-    load();
+    try {
+      await api.post('/admin/groups', { name, teacherIds: picked });
+      toast(`Created ${name}`);
+      setName('');
+      setPicked([]);
+      load();
+    } catch {
+      toast('Could not create group', 'error');
+    }
   }
   async function remove(id: string): Promise<void> {
-    await api.del(`/admin/groups/${id}`);
-    load();
+    const snapshot = groups;
+    const gone = groups.find((g) => g.id === id);
+    setGroups((prev) => prev.filter((g) => g.id !== id));
+    try {
+      await api.del(`/admin/groups/${id}`);
+      toast(`Deleted ${gone?.name ?? 'group'}`);
+    } catch {
+      setGroups(snapshot);
+      toast('Delete failed', 'error');
+    }
   }
 
   return (

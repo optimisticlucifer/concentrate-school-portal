@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeTestDb, resetDb } from '../test/db.js';
 import { seedUser } from '../test/factory.js';
-import { buildContext, chat } from './chat.js';
+import { buildContext } from './chat.js';
 
 const db = makeTestDb();
 
