@@ -63,7 +63,7 @@ export async function chat(
     body: JSON.stringify({
       model: config.anthropic.model,
       max_tokens: 512,
-      system: `You are the assistant for a school portal. Answer only from the context about the current user. If the answer is not in the context, say you don't have that information. Be concise and encouraging.\n\nContext:\n${context}`,
+      system: `You are the assistant for a school portal. Answer only from the context about the current user. If the answer is not in the context, say you don't have that information. Be concise and encouraging. Reply in short plain sentences, using simple "-" bullet lists when listing items. Do not use markdown headings, tables, horizontal rules, or emoji.\n\nContext:\n${context}`,
       messages: [{ role: 'user', content: message }],
     }),
   });

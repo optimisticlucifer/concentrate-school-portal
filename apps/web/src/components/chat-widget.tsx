@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { MessageCircle, Send, X } from 'lucide-react';
 import { api } from '@/lib/api';
+import { Markdown } from '@/lib/markdown';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -61,22 +62,21 @@ export function ChatWidget(): React.ReactElement {
             Ask about your classes, assignments, or grades.
           </p>
         )}
-        {turns.map((t, i) => (
-          <div
-            key={i}
-            className={t.role === 'you' ? 'text-right' : 'text-left'}
-          >
-            <span
-              className={
-                t.role === 'you'
-                  ? 'inline-block rounded-lg bg-primary px-3 py-1.5 text-sm text-white'
-                  : 'inline-block rounded-lg bg-primary-subtle px-3 py-1.5 text-sm text-ink'
-              }
-            >
-              {t.text}
-            </span>
-          </div>
-        ))}
+        {turns.map((t, i) =>
+          t.role === 'you' ? (
+            <div key={i} className="text-right">
+              <span className="inline-block rounded-lg bg-primary px-3 py-1.5 text-sm text-white">
+                {t.text}
+              </span>
+            </div>
+          ) : (
+            <div key={i} className="text-left">
+              <div className="inline-block max-w-[92%] rounded-lg bg-primary-subtle px-3 py-2 text-left text-sm text-ink">
+                <Markdown text={t.text} />
+              </div>
+            </div>
+          )
+        )}
       </div>
       <form onSubmit={send} className="flex gap-2 border-t border-hairline p-3">
         <Input
